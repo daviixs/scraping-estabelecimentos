@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bot de Leads Comerciais</title>
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --card: #ffffff;
+      --primary: #1f6feb;
+      --text: #1c1c1c;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+    }
+    body { margin: 0; font-family: "Segoe UI", system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #0f172a; color: #fff; }
+    header h1 { margin: 0; font-size: 20px; }
+    .btn { border: 1px solid var(--border); background: #fff; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    .btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .container { display: grid; grid-template-columns: 320px 1fr; gap: 16px; padding: 16px 20px 40px; }
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 16px 20px; }
+    .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+    .kpi .label { color: var(--muted); font-size: 12px; }
+    .kpi .value { font-size: 22px; font-weight: 700; }
+    .filters h3 { margin-top: 0; }
+    .filters section { margin-bottom: 14px; }
+    .filters label { display: block; margin: 4px 0; font-size: 14px; }
+    .filters select, .filters input[type="range"] { width: 100%; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { cursor: pointer; background: #f1f5f9; }
+    .badge { padding: 4px 8px; border-radius: 8px; font-weight: 700; font-size: 12px; display: inline-block; }
+    .badge.alta { background: #ffdddd; color: #a32d2d; }
+    .badge.media { background: #fff3cd; color: #856404; }
+    .badge.baixa { background: #d4edda; color: #155724; }
+    .scorebar { width: 120px; background: #e5e7eb; border-radius: 6px; height: 10px; overflow: hidden; }
+    .scorebar div { height: 100%; }
+    .nota { font-weight: 700; }
+    .nota.verde { color: #28a745; }
+    .nota.amarelo { color: #ffc107; }
+    .nota.vermelho { color: #dc3545; }
+    .pagination { display: flex; gap: 6px; align-items: center; padding: 12px 0; flex-wrap: wrap; }
+    .pagination button { padding: 6px 10px; border: 1px solid var(--border); background: #fff; border-radius: 8px; cursor: pointer; }
+    .pagination .active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .table-wrapper { overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Bot de Leads Comerciais</h1>
+    <div>
+      <button class="btn" onclick="exportar('csv')">Exportar CSV</button>
+      <button class="btn" onclick="exportar('xlsx')">Exportar XLSX</button>
+    </div>
+  </header>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="container">
+    <div class="panel filters">
+      <h3>Filtros</h3>
+      <section>
+        <strong>Classificação</strong>
+        <label><input type="checkbox" name="classificacao" value="MUITO BOM"> Muito bom</label>
+        <label><input type="checkbox" name="classificacao" value="MÉDIO"> Médio</label>
+        <label><input type="checkbox" name="classificacao" value="MUITO RUIM"> Muito ruim</label>
+      </section>
+      <section>
+        <strong>Prioridade</strong>
+        <label><input type="checkbox" name="prioridade" value="ALTA"> Alta</label>
+        <label><input type="checkbox" name="prioridade" value="MÉDIA"> Média</label>
+        <label><input type="checkbox" name="prioridade" value="BAIXA"> Baixa</label>
+      </section>
+      <section>
+        <strong>Fonte</strong>
+        <label><input type="checkbox" name="fonte" value="google_maps"> Google Maps</label>
+        <label><input type="checkbox" name="fonte" value="apontador"> Apontador</label>
+        <label><input type="checkbox" name="fonte" value="manual"> Manual</label>
+      </section>
+      <section>
+        <strong>Cidade</strong>
+        <select id="cidade"></select>
+      </section>
+      <section>
+        <strong>Categoria</strong>
+        <select id="categoria"></select>
+      </section>
+      <section>
+        <strong>Score mínimo: <span id="scoreMinVal">0</span></strong>
+        <input type="range" id="score_min" min="0" max="100" value="0" oninput="document.getElementById('scoreMinVal').textContent=this.value">
+      </section>
+      <div style="display:flex; gap:8px;">
+        <button class="btn primary" onclick="aplicarFiltros()">Aplicar</button>
+        <button class="btn" onclick="limparFiltros()">Limpar</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="table-wrapper">
+        <table id="tabela">
+          <thead>
+            <tr>
+              <th data-col="nome">Nome</th>
+              <th data-col="categoria">Categoria</th>
+              <th data-col="cidade">Cidade/Bairro</th>
+              <th data-col="nota_media">Nota</th>
+              <th data-col="total_avaliacoes">Avaliações</th>
+              <th data-col="score_oportunidade">Score</th>
+              <th data-col="prioridade_lead">Prioridade</th>
+              <th data-col="resumo_queixas">Queixas</th>
+              <th data-col="fonte">Fonte</th>
+              <th data-col="data_coleta">Data coleta</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination"></div>
+      <div id="rangeLabel" style="font-size:12px;color:var(--muted);"></div>
+    </div>
+  </div>
+
+  <script>
+    let state = { page: 1, per_page: 20, order_by: 'score_oportunidade', order_dir: 'desc' };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      carregarFiltros();
+      carregarKPIs();
+      carregarDados();
+      document.querySelectorAll('th[data-col]').forEach(th => {
+        th.addEventListener('click', () => toggleOrdenacao(th.dataset.col));
+      });
+    });
+
+    async function carregarFiltros() {
+      const [cidades, categorias] = await Promise.all([
+        fetch('/api/cidades').then(r => r.json()),
+        fetch('/api/categorias').then(r => r.json())
+      ]);
+      const cidadeSel = document.getElementById('cidade');
+      cidadeSel.innerHTML = '<option value=\"\">Todas</option>' + cidades.map(c => `<option value=\"${c}\">${c}</option>`).join('');
+      const catSel = document.getElementById('categoria');
+      catSel.innerHTML = '<option value=\"\">Todas</option>' + categorias.map(c => `<option value=\"${c}\">${c}</option>`).join('');
+    }
+
+    async function carregarKPIs() {
+      const data = await fetch('/api/resumo').then(r => r.json());
+      const kpis = [
+        { label: 'Total', value: data.total },
+        { label: 'Prioridade Alta', value: data.alta },
+        { label: 'Prioridade Média', value: data.media },
+        { label: 'Prioridade Baixa', value: data.baixa },
+        { label: 'Score médio', value: data.score_medio?.toFixed(1) || '0.0' },
+        { label: 'Última coleta', value: data.ultima_coleta || '-' },
+      ];
+      document.getElementById('kpis').innerHTML = kpis.map(k => `
+        <div class=\"kpi\">
+          <div class=\"label\">${k.label}</div>
+          <div class=\"value\">${k.value}</div>
+        </div>`).join('');
+    }
+
+    function coletarFiltros() {
+      const getChecked = (name) => Array.from(document.querySelectorAll(\`input[name=\"${name}\"]:checked\`)).map(i => i.value);
+      return {
+        classificacao: getChecked('classificacao'),
+        prioridade: getChecked('prioridade'),
+        fonte: getChecked('fonte'),
+        cidade: document.getElementById('cidade').value || null,
+        categoria: document.getElementById('categoria').value || null,
+        score_min: Number(document.getElementById('score_min').value)
+      };
+    }
+
+    function buildQuery(params) {
+      return Object.entries(params)
+        .filter(([_, v]) => v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0))
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(Array.isArray(v) ? v.join(',') : v)}`)
+        .join('&');
+    }
+
+    async function carregarDados() {
+      const filtros = coletarFiltros();
+      const query = buildQuery({ ...filtros, page: state.page, per_page: state.per_page, order_by: state.order_by, order_dir: state.order_dir });
+      const data = await fetch(`/api/estabelecimentos?${query}`).then(r => r.json());
+      renderTabela(data.data);
+      renderPaginacao(data.page, data.pages, data.total, data.per_page);
+    }
+
+    function renderTabela(rows) {
+      const tbody = document.querySelector('#tabela tbody');
+      tbody.innerHTML = rows.map(row => `
+        <tr>
+          <td><a href=\"${row.link_origem || '#'}\" target=\"_blank\">${row.nome || ''}</a></td>
+          <td>${row.categoria || ''}</td>
+          <td>${row.cidade || ''}${row.bairro ? ' / ' + row.bairro : ''}</td>
+          <td class=\"nota ${notaClass(row.nota_media)}\">${row.nota_media?.toFixed ? row.nota_media.toFixed(1) : ''}</td>
+          <td>${row.total_avaliacoes || 0}</td>
+          <td>${scoreBar(row.score_oportunidade)}</td>
+          <td>${badge(row.prioridade_lead)}</td>
+          <td>${row.resumo_queixas || ''}</td>
+          <td>${row.fonte || ''}</td>
+          <td>${row.data_coleta || ''}</td>
+        </tr>`).join('');
+    }
+
+    function notaClass(nota) {
+      if (nota === null || nota === undefined) return '';
+      if (nota >= 4.8) return 'verde';
+      if (nota >= 4.5) return 'amarelo';
+      return 'vermelho';
+    }
+
+    function scoreBar(score) {
+      const cor = score >= 60 ? '#2563eb' : score >= 35 ? '#facc15' : '#ef4444';
+      const width = Math.min(Math.max(score || 0, 0), 100);
+      return `<div class=\"scorebar\"><div style=\"width:${width}%;background:${cor}\"></div></div> <span style=\"font-size:12px;\">${(score||0).toFixed(1)}</span>`;
+    }
+
+    function badge(prior) {
+      if (!prior) return '';
+      const cls = prior === 'ALTA' ? 'alta' : prior === 'MÉDIA' ? 'media' : 'baixa';
+      return `<span class=\"badge ${cls}\">${prior}</span>`;
+    }
+
+    function renderPaginacao(page, pages, total, per_page) {
+      const pag = document.getElementById('pagination');
+      const buttons = [];
+      if (page > 1) buttons.push(`<button onclick=\"gotoPage(${page - 1})\">« Anterior</button>`);
+      const maxButtons = 7;
+      const start = Math.max(1, page - 3);
+      const end = Math.min(pages, start + maxButtons - 1);
+      for (let p = start; p <= end; p++) {
+        buttons.push(`<button class=\"${p === page ? 'active' : ''}\" onclick=\"gotoPage(${p})\">${p}</button>`);
+      }
+      if (page < pages) buttons.push(`<button onclick=\"gotoPage(${page + 1})\">Próximo »</button>`);
+      pag.innerHTML = buttons.join('');
+      const startRange = total === 0 ? 0 : (page - 1) * per_page + 1;
+      const endRange = Math.min(page * per_page, total);
+      document.getElementById('rangeLabel').textContent = `Mostrando ${startRange}–${endRange} de ${total} resultados`;
+    }
+
+    function gotoPage(p) {
+      state.page = p;
+      carregarDados();
+    }
+
+    function aplicarFiltros() {
+      state.page = 1;
+      carregarDados();
+      carregarKPIs();
+    }
+
+    function limparFiltros() {
+      document.querySelectorAll('input[type=checkbox]').forEach(c => c.checked = false);
+      document.getElementById('cidade').value = '';
+      document.getElementById('categoria').value = '';
+      document.getElementById('score_min').value = 0;
+      document.getElementById('scoreMinVal').textContent = '0';
+      aplicarFiltros();
+    }
+
+    function toggleOrdenacao(col) {
+      if (state.order_by === col) {
+        state.order_dir = state.order_dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.order_by = col;
+        state.order_dir = 'asc';
+      }
+      carregarDados();
+    }
+
+    function exportar(fmt) {
+      const filtros = coletarFiltros();
+      const query = buildQuery({ ...filtros });
+      window.open(`/api/export/${fmt}?${query}`, '_blank');
+    }
+  </script>
+</body>
+</html>

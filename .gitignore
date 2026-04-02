@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.env
+.env*
+*.sqlite3
+database.db
+
+# Playwright
+playwright-report/
+test-results/
+.cache/
+
+# Node / Astro
+node_modules/
+frontend/node_modules/
+frontend/.astro/
+frontend/dist/
+package-lock.json
+pnpm-lock.yaml
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Build artifacts
+*.egg-info/
+*.bak
+*.tmp
+dist/
+build/
+

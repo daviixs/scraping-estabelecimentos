@@ -1,0 +1,36 @@
+@import "@fontsource/geist/400.css";
+@import "@fontsource/geist/500.css";
+@import "@fontsource/geist/600.css";
+@import "@fontsource/geist/700.css";
+@import "@fontsource/geist-mono/500.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  background: #f9f5f0;
+  color: #231f1a;
+}
+
+body {
+  @apply bg-sand-100 text-graphite antialiased;
+}
+
+.glass {
+  @apply bg-white/70 backdrop-blur-lg border border-white/40 shadow-[0_12px_30px_-18px_rgba(0,0,0,0.15)];
+}
+
+.scroll-shadow {
+  position: relative;
+}
+.scroll-shadow::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 24px;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(249,245,240,0) 0%, rgba(249,245,240,1) 100%);
+}
