@@ -9,8 +9,8 @@ import dashboard
 
 
 @pytest.fixture(scope="function")
-def temp_db(tmp_path, monkeypatch):
-    db_file = tmp_path / "api.db"
+def temp_db(temp_db_path, monkeypatch):
+    db_file = temp_db_path
     monkeypatch.setattr(settings, "DATABASE_PATH", str(db_file))
     db_manager.init_db(db_path=str(db_file), schema_path="database/schema.sql")
     conn = db_manager.get_connection(str(db_file))
@@ -54,3 +54,60 @@ def test_api_resumo(temp_db):
     resp = client.get("/api/resumo")
     data = json.loads(resp.data)
     assert data["total"] == 1
+
+
+def test_api_start_varredura(monkeypatch, temp_db):
+    client = dashboard.app.test_client()
+
+    def fake_start_scan_job(command):
+        assert command == "google_maps restaurantes Franca SP"
+        return {
+            "id": "job-1",
+            "command": command,
+            "fonte": "google_maps",
+            "status": "queued",
+            "meta_minima": 30,
+            "novos_encontrados": 0,
+            "ignorados_existentes": 0,
+            "paginas_percorridas": 0,
+            "registros_inspecionados": 0,
+            "mensagem": "Job criado.",
+            "erro": None,
+        }
+
+    monkeypatch.setattr(dashboard, "start_scan_job", fake_start_scan_job)
+    resp = client.post("/api/varreduras", json={"command": "google_maps restaurantes Franca SP"})
+    payload = resp.get_json()
+
+    assert resp.status_code == 202
+    assert payload["job"]["id"] == "job-1"
+    assert payload["job"]["status"] == "queued"
+
+
+def test_api_get_varredura_ativa(monkeypatch, temp_db):
+    client = dashboard.app.test_client()
+
+    monkeypatch.setattr(
+        dashboard,
+        "get_active_or_latest_job_snapshot",
+        lambda: {
+            "id": "job-2",
+            "command": "apontador Franca SP bares-e-restaurantes/restaurantes",
+            "fonte": "apontador",
+            "status": "running",
+            "meta_minima": 30,
+            "novos_encontrados": 12,
+            "ignorados_existentes": 4,
+            "paginas_percorridas": 3,
+            "registros_inspecionados": 18,
+            "mensagem": "Executando.",
+            "erro": None,
+        },
+    )
+
+    resp = client.get("/api/varreduras/ativa")
+    payload = resp.get_json()
+
+    assert resp.status_code == 200
+    assert payload["job"]["status"] == "running"
+    assert payload["job"]["novos_encontrados"] == 12

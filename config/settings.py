@@ -9,6 +9,7 @@ DATABASE_PATH = "database.db"
 DASHBOARD_HOST = "127.0.0.1"
 DASHBOARD_PORT = 5000
 REGISTROS_POR_PAGINA = 20
+VARREDURA_MINIMA_ESTABELECIMENTOS = 30
 
 # Score — pesos ajustáveis
 PESO_NOTA_INVERTIDA = 0.30
@@ -26,6 +27,9 @@ DELTA_QUEDA_MINIMO = 0.2  # Diferença mínima de nota para contar como queda
 # Scraping
 DELAY_MIN_SEGUNDOS = 3
 DELAY_MAX_SEGUNDOS = 6
+GOOGLE_MAX_IDLE_SCROLLS = 4
+GOOGLE_MAX_ITENS_INSPECIONADOS = 180
+APONTADOR_MAX_PAGINAS = 25
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"

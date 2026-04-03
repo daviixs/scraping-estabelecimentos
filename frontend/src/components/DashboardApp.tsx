@@ -6,9 +6,9 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
-import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { ArrowUpRight, DownloadSimple, FunnelSimple, ArrowClockwise } from "@phosphor-icons/react";
+import ScanCommander from "./ScanCommander";
 import { cn } from "../lib/utils";
 
 type Estabelecimento = {
@@ -172,6 +172,12 @@ export default function DashboardApp() {
     window.open(`/api/export/${fmt}?${query}`, "_blank");
   };
 
+  const refreshAll = () => {
+    fetchResumo();
+    fetchFiltros();
+    fetchData();
+  };
+
   const prioridadeBadge = (prior?: string) => <Badge label={prior} className={badgeColor[prior || ""]} />;
 
   const pagesArray = useMemo(() => {
@@ -206,6 +212,8 @@ export default function DashboardApp() {
             </Button>
           </div>
         </motion.header>
+
+        <ScanCommander onFinished={refreshAll} />
 
         <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {loadingKpi ? (

@@ -4,8 +4,8 @@ import sqlite3
 from datetime import datetime, timezone
 
 
-def test_upsert_and_history(tmp_path):
-    db_file = tmp_path / "test.db"
+def test_upsert_and_history(temp_db_path):
+    db_file = temp_db_path
     schema_path = Path("database/schema.sql")
     db_manager.init_db(db_path=str(db_file), schema_path=str(schema_path))
     conn = db_manager.get_connection(str(db_file))
@@ -34,8 +34,8 @@ def test_upsert_and_history(tmp_path):
     assert row["c"] == 1
 
 
-def test_upsert_sem_cidade_reutiliza_registro(tmp_path):
-    db_file = tmp_path / "test.db"
+def test_upsert_sem_cidade_reutiliza_registro(temp_db_path):
+    db_file = temp_db_path
     schema_path = Path("database/schema.sql")
     db_manager.init_db(db_path=str(db_file), schema_path=str(schema_path))
     conn = db_manager.get_connection(str(db_file))

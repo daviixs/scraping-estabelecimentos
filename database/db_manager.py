@@ -33,6 +33,16 @@ def _normalize_city(value: Optional[str]) -> str:
     return str(value).strip()
 
 
+def estabelecimento_exists(conn: sqlite3.Connection, nome: Optional[str], cidade: Optional[str]) -> bool:
+    if not nome:
+        return False
+    row = conn.execute(
+        "SELECT 1 FROM estabelecimentos WHERE nome=? AND cidade=? LIMIT 1",
+        (str(nome).strip(), _normalize_city(cidade)),
+    ).fetchone()
+    return row is not None
+
+
 def upsert_estabelecimento(conn: sqlite3.Connection, data: Dict) -> int:
     """
     Insere ou atualiza um estabelecimento pelo par (nome, cidade).

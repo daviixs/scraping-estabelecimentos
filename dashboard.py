@@ -1,13 +1,20 @@
-import os
 import webbrowser
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 from flask import Flask, jsonify, request, send_file
 
 from config import settings
 from database import db_manager
 from output import csv_exporter, excel_exporter
+from services import (
+    ActiveScanError,
+    CommandParseError,
+    get_active_or_latest_job_snapshot,
+    get_job_snapshot,
+    get_scan_examples,
+    start_scan_job,
+)
 
 app = Flask(
     __name__,
@@ -44,7 +51,6 @@ def parse_filters(args) -> Dict:
 
 @app.route("/")
 def index():
-    # serve Astro build se existir, senão fallback para templates/index.html
     dist_index = Path(app.static_folder) / "index.html"
     if dist_index.exists():
         return send_file(dist_index)
@@ -93,6 +99,34 @@ def api_categorias():
     with db_manager.get_connection() as conn:
         categorias = db_manager.list_categorias(conn)
     return jsonify(categorias)
+
+
+@app.route("/api/varreduras", methods=["POST"])
+def api_start_varredura():
+    payload = request.get_json(silent=True) or {}
+    command = str(payload.get("command") or "").strip()
+    if not command:
+        return jsonify({"error": "Digite um comando para iniciar a varredura.", "examples": get_scan_examples()}), 400
+    try:
+        job = start_scan_job(command)
+        return jsonify({"job": job}), 202
+    except CommandParseError as exc:
+        return jsonify({"error": str(exc), "examples": get_scan_examples()}), 400
+    except ActiveScanError as exc:
+        return jsonify({"error": str(exc), "job": exc.snapshot}), 409
+
+
+@app.route("/api/varreduras/<job_id>")
+def api_get_varredura(job_id: str):
+    job = get_job_snapshot(job_id)
+    if not job:
+        return jsonify({"error": "Varredura nao encontrada."}), 404
+    return jsonify({"job": job})
+
+
+@app.route("/api/varreduras/ativa")
+def api_get_varredura_ativa():
+    return jsonify({"job": get_active_or_latest_job_snapshot()})
 
 
 def _collect_and_export(fmt: str):
