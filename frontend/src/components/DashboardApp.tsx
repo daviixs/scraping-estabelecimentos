@@ -58,6 +58,22 @@ const scoreBarColor = (score?: number) => {
   return "bg-red-500";
 };
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "?";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "?";
+  const parts = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(parsed);
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${byType.day}/${byType.month}/${byType.year} ${byType.hour}:${byType.minute}`;
+};
+
 export default function DashboardApp() {
   const [data, setData] = useState<Estabelecimento[]>([]);
   const [page, setPage] = useState(1);
@@ -224,8 +240,8 @@ export default function DashboardApp() {
                 {[
                   { label: "Total", value: resumo.total, sub: "estabelecimentos" },
                   { label: "Prioridade Alta", value: resumo.alta, sub: "leads quentes" },
-                  { label: "Score médio", value: resumo.score_medio?.toFixed(1) ?? "0.0", sub: "última coleta" },
-                  { label: "Última coleta", value: resumo.ultima_coleta || "—", sub: "" },
+                  { label: "Score medio", value: resumo.score_medio?.toFixed(1) ?? "0.0", sub: "ultima coleta" },
+                  { label: "Ultima coleta", value: formatDateTime(resumo.ultima_coleta), sub: "" },
                 ].map((item, i) => (
                   <motion.div key={item.label} variants={stagger} initial="hidden" animate="show" custom={i}>
                     <Card className="bg-white/90 border-sand-200">
