@@ -104,14 +104,15 @@ def api_categorias():
 @app.route("/api/varreduras", methods=["POST"])
 def api_start_varredura():
     payload = request.get_json(silent=True) or {}
+    source = str(payload.get("source") or "").strip() or None
     command = str(payload.get("command") or "").strip()
     if not command:
-        return jsonify({"error": "Digite um comando para iniciar a varredura.", "examples": get_scan_examples()}), 400
+        return jsonify({"error": "Digite um comando para iniciar a varredura.", "examples": get_scan_examples(source)}), 400
     try:
-        job = start_scan_job(command)
+        job = start_scan_job(command, source=source)
         return jsonify({"job": job}), 202
     except CommandParseError as exc:
-        return jsonify({"error": str(exc), "examples": get_scan_examples()}), 400
+        return jsonify({"error": str(exc), "examples": get_scan_examples(source)}), 400
     except ActiveScanError as exc:
         return jsonify({"error": str(exc), "job": exc.snapshot}), 409
 

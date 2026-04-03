@@ -12,7 +12,7 @@ from database import db_manager, history
 from processor import nlp_comments, normalizer, scorer
 from scraper import apontador, google_maps
 
-from .scan_parser import CommandParseError, ScanRequest, parse_scan_command
+from .scan_parser import CommandParseError, ScanRequest, parse_dashboard_scan_command, parse_scan_command
 
 
 ProgressCallback = Callable[..., None]
@@ -53,7 +53,18 @@ _active_job_id: Optional[str] = None
 _latest_job_id: Optional[str] = None
 
 
-def get_scan_examples() -> list[str]:
+def get_scan_examples(source: Optional[str] = None) -> list[str]:
+    normalized = (source or "").strip().lower().replace("-", "_")
+    if normalized == "google_maps":
+        return [
+            "restaurantes Franca SP",
+            "clinicas odontologicas Ribeirao Preto SP",
+        ]
+    if normalized == "apontador":
+        return [
+            "Franca SP bares-e-restaurantes/restaurantes",
+            "Ribeirao Preto SP saude/clinicas_medicas",
+        ]
     return [
         "google_maps restaurantes Franca SP",
         "apontador Franca SP bares-e-restaurantes/restaurantes",
@@ -302,8 +313,8 @@ def _run_scan_job(job_id: str, scan_request: ScanRequest) -> None:
                 _active_job_id = None
 
 
-def start_scan_job(command: str) -> Dict[str, Any]:
-    scan_request = parse_scan_command(command)
+def start_scan_job(command: str, source: Optional[str] = None) -> Dict[str, Any]:
+    scan_request = parse_dashboard_scan_command(source, command) if source else parse_scan_command(command)
     global _active_job_id, _latest_job_id
     with _jobs_lock:
         if _active_job_id is not None:

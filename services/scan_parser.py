@@ -22,6 +22,13 @@ class ScanRequest:
     comando_original: str = ""
 
 
+def _normalize_source(source: str) -> str:
+    normalized = (source or "").strip().lower().replace("-", "_")
+    if normalized in {"google maps", "googlemaps"}:
+        return "google_maps"
+    return normalized
+
+
 def _normalize_tokens(command: str) -> List[str]:
     try:
         return shlex.split(command)
@@ -123,6 +130,43 @@ def _parse_shorthand(tokens: List[str], command: str) -> ScanRequest:
         )
 
     raise CommandParseError("Comando invalido. Comece com `google_maps`, `google maps` ou `apontador`.")
+
+
+def parse_dashboard_scan_command(source: str, command: str) -> ScanRequest:
+    normalized_source = _normalize_source(source)
+    normalized_command = " ".join((command or "").split())
+    if not normalized_command:
+        raise CommandParseError("Digite o comando da varredura antes de executar.")
+
+    if normalized_source == "google_maps":
+        return ScanRequest(
+            fonte="google_maps",
+            busca=normalized_command,
+            meta_minima=settings.VARREDURA_MINIMA_ESTABELECIMENTOS,
+            ignorar_existentes=True,
+            comando_original=normalized_command,
+        )
+
+    if normalized_source == "apontador":
+        tokens = _normalize_tokens(normalized_command)
+        if len(tokens) < 3:
+            raise CommandParseError("No Apontador, use `cidade UF categoria`.")
+        categoria = tokens[-1]
+        estado = tokens[-2].upper()
+        cidade = " ".join(tokens[:-2]).strip()
+        if len(estado) != 2 or not estado.isalpha() or not cidade:
+            raise CommandParseError("No Apontador, use `cidade UF categoria`.")
+        return ScanRequest(
+            fonte="apontador",
+            cidade=cidade,
+            estado=estado,
+            categoria=categoria,
+            meta_minima=settings.VARREDURA_MINIMA_ESTABELECIMENTOS,
+            ignorar_existentes=True,
+            comando_original=normalized_command,
+        )
+
+    raise CommandParseError("Selecione uma fonte valida para iniciar a varredura.")
 
 
 def parse_scan_command(command: str) -> ScanRequest:

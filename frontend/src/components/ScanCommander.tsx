@@ -20,11 +20,28 @@ type ScanJob = {
   erro?: string | null;
 };
 
-const examples = [
-  "google_maps restaurantes Franca SP",
-  "apontador Franca SP bares-e-restaurantes/restaurantes",
-  'python main.py --fonte google_maps --busca "restaurantes Franca SP"',
-];
+type ScanSource = "google_maps" | "apontador";
+
+const sourceLabels: Record<ScanSource, string> = {
+  google_maps: "Google Maps",
+  apontador: "Apontador",
+};
+
+const sourceExamples: Record<ScanSource, string[]> = {
+  google_maps: [
+    "restaurantes Franca SP",
+    "clinicas odontologicas Ribeirao Preto SP",
+  ],
+  apontador: [
+    "Franca SP bares-e-restaurantes/restaurantes",
+    "Ribeirao Preto SP saude/clinicas_medicas",
+  ],
+};
+
+const sourcePlaceholder: Record<ScanSource, string> = {
+  google_maps: "restaurantes Franca SP",
+  apontador: "Franca SP bares-e-restaurantes/restaurantes",
+};
 
 const statusLabel: Record<ScanJob["status"], string> = {
   queued: "Na fila",
@@ -43,6 +60,7 @@ const statusTone: Record<ScanJob["status"], string> = {
 };
 
 export default function ScanCommander({ onFinished }: { onFinished: () => void }) {
+  const [source, setSource] = useState<ScanSource>("google_maps");
   const [command, setCommand] = useState("");
   const [job, setJob] = useState<ScanJob | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +73,9 @@ export default function ScanCommander({ onFinished }: { onFinished: () => void }
       if (!res.ok) return;
       const json = await res.json();
       setJob(json.job);
+      if (json.job?.fonte === "google_maps" || json.job?.fonte === "apontador") {
+        setSource(json.job.fonte);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -67,6 +88,9 @@ export default function ScanCommander({ onFinished }: { onFinished: () => void }
       const json = await res.json();
       if (json.job) {
         setJob(json.job);
+        if (json.job.fonte === "google_maps" || json.job.fonte === "apontador") {
+          setSource(json.job.fonte);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -100,7 +124,7 @@ export default function ScanCommander({ onFinished }: { onFinished: () => void }
       const res = await fetch("/api/varreduras", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command: trimmed }),
+        body: JSON.stringify({ source, command: trimmed }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -108,6 +132,9 @@ export default function ScanCommander({ onFinished }: { onFinished: () => void }
         throw new Error(json.error || "Nao foi possivel iniciar a varredura.");
       }
       setJob(json.job);
+      if (json.job?.fonte === "google_maps" || json.job?.fonte === "apontador") {
+        setSource(json.job.fonte);
+      }
     } catch (err: any) {
       setError(err.message || "Nao foi possivel iniciar a varredura.");
     } finally {
@@ -125,8 +152,8 @@ export default function ScanCommander({ onFinished }: { onFinished: () => void }
           <p className="text-xs uppercase tracking-[0.28em] text-sand-300/70">Operacao</p>
           <h2 className="text-2xl font-semibold tracking-tight">Procurar estabelecimentos</h2>
           <p className="mt-2 max-w-2xl text-sm text-sand-300/80">
-            Dispare uma varredura por comando livre. A busca continua ate atingir 30 novos estabelecimentos ou
-            esgotar a fonte.
+            Escolha o site da busca e digite o comando inteiro no campo ao lado. A varredura continua ate atingir
+            30 novos estabelecimentos ou esgotar a fonte.
           </p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-right">
@@ -137,15 +164,35 @@ export default function ScanCommander({ onFinished }: { onFinished: () => void }
       <CardContent className="relative space-y-5">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
           <div className="space-y-3">
-            <Input
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              placeholder="google_maps restaurantes Franca SP"
-              className="h-14 rounded-2xl border-white/10 bg-white/10 px-4 font-mono text-[15px] text-sand-50 placeholder:text-sand-300/45 focus:border-accent/60 focus:ring-accent/40"
-              disabled={submitting || running}
-            />
+            <div className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
+              <label className="space-y-2">
+                <span className="block text-xs uppercase tracking-[0.24em] text-sand-300/70">Site</span>
+                <select
+                  value={source}
+                  onChange={(e) => setSource(e.target.value as ScanSource)}
+                  className="h-14 w-full rounded-2xl border border-white/10 bg-white/10 px-4 text-sm font-semibold text-sand-50 outline-none transition focus:border-accent/60 focus:ring-2 focus:ring-accent/40"
+                  disabled={submitting || running}
+                >
+                  {Object.entries(sourceLabels).map(([value, label]) => (
+                    <option key={value} value={value} className="text-graphite">
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-2">
+                <span className="block text-xs uppercase tracking-[0.24em] text-sand-300/70">Comando</span>
+                <Input
+                  value={command}
+                  onChange={(e) => setCommand(e.target.value)}
+                  placeholder={sourcePlaceholder[source]}
+                  className="h-14 rounded-2xl border-white/10 bg-white/10 px-4 font-mono text-[15px] text-sand-50 placeholder:text-sand-300/45 focus:border-accent/60 focus:ring-accent/40"
+                  disabled={submitting || running}
+                />
+              </label>
+            </div>
             <div className="flex flex-wrap gap-2">
-              {examples.map((example) => (
+              {sourceExamples[source].map((example) => (
                 <button
                   key={example}
                   type="button"
@@ -176,7 +223,11 @@ export default function ScanCommander({ onFinished }: { onFinished: () => void }
           <div className={cn("rounded-2xl border px-4 py-4", job ? statusTone[job.status] : "border-white/10 bg-white/6")}>
             <p className="text-xs uppercase tracking-[0.24em] text-sand-300/70">Status</p>
             <p className="mt-2 text-xl font-semibold">{job ? statusLabel[job.status] : "Ocioso"}</p>
-            <p className="mt-1 text-xs text-sand-300/70">{job?.fonte ? job.fonte.replace("_", " ") : "Aguardando comando"}</p>
+            <p className="mt-1 text-xs text-sand-300/70">
+              {job?.fonte && (job.fonte === "google_maps" || job.fonte === "apontador")
+                ? sourceLabels[job.fonte]
+                : "Aguardando comando"}
+            </p>
           </div>
           {[
             ["Novos", job?.novos_encontrados ?? 0],

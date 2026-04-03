@@ -59,8 +59,9 @@ def test_api_resumo(temp_db):
 def test_api_start_varredura(monkeypatch, temp_db):
     client = dashboard.app.test_client()
 
-    def fake_start_scan_job(command):
-        assert command == "google_maps restaurantes Franca SP"
+    def fake_start_scan_job(command, source=None):
+        assert command == "restaurantes Franca SP"
+        assert source == "google_maps"
         return {
             "id": "job-1",
             "command": command,
@@ -76,7 +77,7 @@ def test_api_start_varredura(monkeypatch, temp_db):
         }
 
     monkeypatch.setattr(dashboard, "start_scan_job", fake_start_scan_job)
-    resp = client.post("/api/varreduras", json={"command": "google_maps restaurantes Franca SP"})
+    resp = client.post("/api/varreduras", json={"source": "google_maps", "command": "restaurantes Franca SP"})
     payload = resp.get_json()
 
     assert resp.status_code == 202
