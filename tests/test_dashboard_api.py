@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -25,7 +25,7 @@ def temp_db(tmp_path, monkeypatch):
         "total_avaliacoes": 120,
         "link_origem": "http://origem",
         "fonte": "apontador",
-        "data_coleta": datetime.utcnow().isoformat(),
+        "data_coleta": datetime.now(timezone.utc).isoformat(),
         "dono_responde": 0,
         "score_oportunidade": 55.0,
         "faixa_classificacao": "MUITO RUIM",

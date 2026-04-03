@@ -10,6 +10,12 @@ def _clean_str(value: Optional[str]) -> Optional[str]:
     return value or None
 
 
+def _clean_city(value: Optional[str]) -> str:
+    # SQLite considera NULL distinto em UNIQUE, entao usamos string vazia
+    # como fallback estavel quando a fonte nao informa a cidade.
+    return _clean_str(value) or ""
+
+
 def classify_nota(nota_media: Optional[float]) -> Optional[str]:
     if nota_media is None:
         return None
@@ -24,7 +30,7 @@ def normalize_estabelecimento(raw: Dict) -> Dict:
     data = dict(raw)
     data["nome"] = _clean_str(data.get("nome"))
     data["categoria"] = _clean_str(data.get("categoria"))
-    data["cidade"] = _clean_str(data.get("cidade"))
+    data["cidade"] = _clean_city(data.get("cidade"))
     data["bairro"] = _clean_str(data.get("bairro"))
     data["telefone"] = _clean_str(data.get("telefone"))
     data["site"] = _clean_str(data.get("site"))

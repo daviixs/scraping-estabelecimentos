@@ -1,7 +1,7 @@
 import random
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from playwright.sync_api import sync_playwright
@@ -60,7 +60,7 @@ def _scrape_detalhe(context, url: str) -> Dict:
 def scrape_apontador(cidade: str, estado: str, categoria: str) -> List[Dict]:
     base_url = settings.APONTADOR_BASE_URL.format(cidade=cidade.lower(), estado=estado.lower(), categoria=categoria)
     resultados: List[Dict] = []
-    data_coleta = datetime.utcnow().isoformat()
+    data_coleta = datetime.now(timezone.utc).isoformat()
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)

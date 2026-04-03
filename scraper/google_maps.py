@@ -8,6 +8,14 @@ from playwright.sync_api import Page, sync_playwright
 from config import settings
 
 
+UF_BRASIL = {
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
+    "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
+    "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+}
+CITY_CONNECTORS = {"da", "das", "de", "do", "dos", "e"}
+
+
 def _parse_rating_text(text: Optional[str]) -> Optional[float]:
     if not text:
         return None
@@ -26,6 +34,46 @@ def _parse_reviews_count(text: Optional[str]) -> int:
     text = text.replace(".", "").replace(",", "")
     match = re.search(r"(\d+)", text)
     return int(match.group(1)) if match else 0
+
+
+def _extract_city_from_address(address: Optional[str]) -> Optional[str]:
+    if not address:
+        return None
+    normalized = re.sub(r"\s+", " ", address).strip()
+    parts = [part.strip() for part in normalized.split(",") if part.strip()]
+    for part in reversed(parts):
+        match = re.match(r"^([A-Za-zÀ-ÿ' ]+?)\s*-\s*([A-Z]{2})$", part)
+        if match:
+            city = match.group(1).strip(" -")
+            return city or None
+    match = re.search(r"([A-Za-zÀ-ÿ' ]+?)\s*-\s*([A-Z]{2})(?:\s*,\s*\d{5}-?\d{3})?$", normalized)
+    if match:
+        city = match.group(1).strip(" -")
+        return city or None
+    return None
+
+
+def _extract_city_from_busca(busca: str) -> Optional[str]:
+    tokens = re.findall(r"[A-Za-zÀ-ÿ']+", busca or "")
+    if len(tokens) < 2 or tokens[-1].upper() not in UF_BRASIL:
+        return None
+
+    city_tokens = []
+    has_named_token = False
+    for token in reversed(tokens[:-1]):
+        token_lower = token.lower()
+        if token[:1].isupper():
+            has_named_token = True
+            city_tokens.append(token)
+            continue
+        if city_tokens and token_lower in CITY_CONNECTORS:
+            city_tokens.append(token)
+            continue
+        break
+
+    if not city_tokens or not has_named_token:
+        return None
+    return " ".join(reversed(city_tokens))
 
 
 def _scroll_results(page: Page, max_idle: int = 3):
@@ -118,6 +166,7 @@ def _extract_reviews_from_modal(page: Page, details: Dict):
 def scrape_google_maps(busca: str) -> List[Dict]:
     url = f"https://www.google.com/maps/search/{busca.replace(' ', '+')}"
     resultados: List[Dict] = []
+    cidade_busca = _extract_city_from_busca(busca)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(user_agent=settings.USER_AGENT, viewport={"width": 1280, "height": 900})
@@ -134,7 +183,7 @@ def scrape_google_maps(busca: str) -> List[Dict]:
             payload = {
                 "nome": base["nome"],
                 "categoria": base.get("categoria"),
-                "cidade": None,
+                "cidade": _extract_city_from_address(details.get("bairro")) or cidade_busca,
                 "bairro": details.get("bairro"),
                 "telefone": details.get("telefone"),
                 "site": details.get("site"),

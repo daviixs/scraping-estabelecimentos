@@ -1,5 +1,5 @@
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 
 from config import settings
 from database import db_manager, history
@@ -11,7 +11,7 @@ import dashboard
 
 def process_registros(registros):
     db_manager.init_db()
-    data_coleta = datetime.utcnow().isoformat()
+    data_coleta = datetime.now(timezone.utc).isoformat()
     inseridos = 0
     with db_manager.get_connection() as conn:
         for reg in registros:

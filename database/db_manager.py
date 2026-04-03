@@ -25,11 +25,22 @@ def init_db(
         conn.commit()
 
 
+def _normalize_city(value: Optional[str]) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    return str(value).strip()
+
+
 def upsert_estabelecimento(conn: sqlite3.Connection, data: Dict) -> int:
     """
     Insere ou atualiza um estabelecimento pelo par (nome, cidade).
     Retorna o id do registro.
     """
+    payload = dict(data)
+    payload["cidade"] = _normalize_city(payload.get("cidade"))
+
     sql = """
     INSERT INTO estabelecimentos (
         nome, categoria, cidade, bairro, telefone, site,
@@ -58,14 +69,18 @@ def upsert_estabelecimento(conn: sqlite3.Connection, data: Dict) -> int:
         prioridade_lead=excluded.prioridade_lead,
         resumo_queixas=excluded.resumo_queixas;
     """
-    cur = conn.execute(sql, data)
+    conn.execute(sql, payload)
     conn.commit()
     # recuperar id
     cur = conn.execute(
         "SELECT id FROM estabelecimentos WHERE nome=? AND cidade=?",
-        (data["nome"], data["cidade"]),
+        (payload["nome"], payload["cidade"]),
     )
     row = cur.fetchone()
+    if row is None:
+        raise RuntimeError(
+            f"Nao foi possivel recuperar o estabelecimento salvo: nome={payload['nome']!r}, cidade={payload['cidade']!r}"
+        )
     return int(row["id"])
 
 
