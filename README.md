@@ -94,7 +94,14 @@ Observacoes:
 - Para desenvolvimento do frontend, os scripts disponiveis sao `npm run dev`, `npm run build` e `npm run preview`.
 
 ## 5. Rodar o projeto
-O projeto pode ser usado de duas formas: pela linha de comando ou pela dashboard.
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  python -m pip install --upgrade pip
+  python -m pip install -r requirements.txt
+  python -m playwright install chromium
+  python main.py --dashboard
+  ```
 
 ### 5.1 Abrir apenas a dashboard
 ```bash
