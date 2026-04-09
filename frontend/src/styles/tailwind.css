@@ -9,28 +9,24 @@
 @tailwind utilities;
 
 :root {
-  background: #f9f5f0;
-  color: #231f1a;
+  background: #f6f1ea;
+  color: #221d19;
+}
+
+html {
+  background: #f6f1ea;
 }
 
 body {
   @apply bg-sand-100 text-graphite antialiased;
+  background-image:
+    radial-gradient(circle at top left, rgba(159, 51, 71, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(210, 174, 103, 0.09), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(127, 154, 169, 0.08), transparent 30%);
+  background-attachment: fixed;
 }
 
-.glass {
-  @apply bg-white/70 backdrop-blur-lg border border-white/40 shadow-[0_12px_30px_-18px_rgba(0,0,0,0.15)];
-}
-
-.scroll-shadow {
-  position: relative;
-}
-.scroll-shadow::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 24px;
-  height: 100%;
-  pointer-events: none;
-  background: linear-gradient(90deg, rgba(249,245,240,0) 0%, rgba(249,245,240,1) 100%);
+::selection {
+  background: rgba(159, 51, 71, 0.16);
+  color: #221d19;
 }

@@ -1,6 +1,6 @@
 import webbrowser
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 from flask import Flask, jsonify, request, send_file
 
@@ -15,18 +15,21 @@ from services import (
     get_scan_examples,
     start_scan_job,
 )
+from whatsapp import get_dispatch_scheduler
 
 app = Flask(
     __name__,
     static_folder="frontend/dist",
     static_url_path="/",
-    template_folder="templates",
 )
 
 
-def ensure_db():
-    if not Path(settings.DATABASE_PATH).exists():
-        db_manager.init_db()
+def ensure_db() -> None:
+    db_manager.init_db()
+
+
+def _parse_status_filter(raw_value: str) -> List[str]:
+    return [item.strip() for item in raw_value.split(",") if item.strip()]
 
 
 def parse_filters(args) -> Dict:
@@ -41,6 +44,10 @@ def parse_filters(args) -> Dict:
         filters["cidade"] = args.get("cidade")
     if args.get("categoria"):
         filters["categoria"] = args.get("categoria")
+    if args.get("status_whatsapp"):
+        filters["status_whatsapp"] = _parse_status_filter(args.get("status_whatsapp"))
+    if args.get("aprovado_disparo"):
+        filters["aprovado_disparo"] = args.get("aprovado_disparo")
     if args.get("score_min") is not None:
         try:
             filters["score_min"] = float(args.get("score_min"))
@@ -49,12 +56,36 @@ def parse_filters(args) -> Dict:
     return filters
 
 
+def _parse_ids(payload) -> List[int]:
+    raw_ids = payload.get("ids")
+    if not isinstance(raw_ids, list):
+        return []
+    parsed: List[int] = []
+    for item in raw_ids:
+        try:
+            parsed.append(int(item))
+        except (TypeError, ValueError):
+            continue
+    return parsed
+
+
+def _parse_limit(raw_value: str, default: int = 60) -> int:
+    try:
+        parsed = int(raw_value)
+    except (TypeError, ValueError):
+        return default
+    return max(1, min(parsed, 200))
+
+
 @app.route("/")
 def index():
     dist_index = Path(app.static_folder) / "index.html"
-    if dist_index.exists():
-        return send_file(dist_index)
-    return send_file(Path(app.template_folder) / "index.html")
+    if not dist_index.exists():
+        return (
+            "Frontend build nao encontrado. Rode `npm install` e `npm run build` em `frontend/`.",
+            503,
+        )
+    return send_file(dist_index)
 
 
 @app.route("/api/estabelecimentos")
@@ -99,6 +130,107 @@ def api_categorias():
     with db_manager.get_connection() as conn:
         categorias = db_manager.list_categorias(conn)
     return jsonify(categorias)
+
+
+@app.route("/api/aprovar", methods=["POST"])
+def api_aprovar():
+    ensure_db()
+    payload = request.get_json(silent=True) or {}
+    ids = _parse_ids(payload)
+    if not ids:
+        return jsonify({"error": "Informe uma lista de IDs para aprovar."}), 400
+
+    with db_manager.get_connection() as conn:
+        updated = db_manager.update_aprovacao_lote(conn, ids, aprovado=True)
+    return jsonify({"updated": updated})
+
+
+@app.route("/api/remover-aprovacao", methods=["POST"])
+def api_remover_aprovacao():
+    ensure_db()
+    payload = request.get_json(silent=True) or {}
+    ids = _parse_ids(payload)
+    if not ids:
+        return jsonify({"error": "Informe uma lista de IDs para remover aprovacao."}), 400
+
+    with db_manager.get_connection() as conn:
+        updated = db_manager.update_aprovacao_lote(conn, ids, aprovado=False)
+    return jsonify({"updated": updated})
+
+
+@app.route("/api/fila-disparos")
+def api_fila_disparos():
+    ensure_db()
+    with db_manager.get_connection() as conn:
+        fila = db_manager.list_fila_disparos(conn)
+    return jsonify({"data": fila})
+
+
+@app.route("/api/mensagens/elegiveis")
+def api_mensagens_elegiveis():
+    ensure_db()
+    search = request.args.get("q", "")
+    limit = _parse_limit(request.args.get("limit"), default=60)
+    with db_manager.get_connection() as conn:
+        registros = db_manager.list_estabelecimentos_mensagens(conn, search=search, limit=limit)
+    return jsonify({"data": registros})
+
+
+@app.route("/api/mensagens/config")
+def api_mensagens_config():
+    ensure_db()
+    with db_manager.get_connection() as conn:
+        config = db_manager.get_operational_config(conn)
+    return jsonify({"config": config})
+
+
+@app.route("/api/mensagens/config", methods=["POST"])
+def api_mensagens_config_update():
+    ensure_db()
+    payload = request.get_json(silent=True) or {}
+    modo_envio = str(payload.get("modo_envio") or "").strip().lower()
+    if modo_envio not in {"manual", "automatico"}:
+        return jsonify({"error": "Informe `manual` ou `automatico` para o modo de envio."}), 400
+
+    with db_manager.get_connection() as conn:
+        config = db_manager.update_operational_mode(conn, modo_envio)
+    return jsonify({"config": config})
+
+
+@app.route("/api/disparo/status")
+def api_disparo_status():
+    ensure_db()
+    scheduler = get_dispatch_scheduler()
+    return jsonify({"scheduler": scheduler.get_status_snapshot()})
+
+
+@app.route("/api/disparo/enfileirar", methods=["POST"])
+def api_disparo_enfileirar():
+    ensure_db()
+    payload = request.get_json(silent=True) or {}
+    ids = _parse_ids(payload)
+    if not ids:
+        return jsonify({"error": "Informe uma lista de IDs para adicionar a fila."}), 400
+
+    scheduler = get_dispatch_scheduler()
+    created = scheduler.enqueue_estabelecimentos(ids, source="manual", approve=True)
+    return jsonify({"created": created, "scheduler": scheduler.get_status_snapshot()})
+
+
+@app.route("/api/disparo/iniciar", methods=["POST"])
+def api_disparo_iniciar():
+    ensure_db()
+    scheduler = get_dispatch_scheduler()
+    snapshot = scheduler.start()
+    return jsonify({"scheduler": snapshot})
+
+
+@app.route("/api/disparo/pausar", methods=["POST"])
+def api_disparo_pausar():
+    ensure_db()
+    scheduler = get_dispatch_scheduler()
+    snapshot = scheduler.pause()
+    return jsonify({"scheduler": snapshot})
 
 
 @app.route("/api/varreduras", methods=["POST"])

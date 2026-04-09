@@ -1,14 +1,25 @@
 import * as React from "react";
+
 import { cn } from "../../lib/utils";
 
 const variants = {
-  ALTA: "bg-red-100 text-red-800 border border-red-200",
-  "MÉDIA": "bg-amber-100 text-amber-800 border border-amber-200",
-  BAIXA: "bg-emerald-100 text-emerald-800 border border-emerald-200",
-  default: "bg-sand-200 text-graphite border border-sand-300",
+  ALTA: "border border-blush-200 bg-blush-50 text-blush-700",
+  MEDIA: "border border-sun-200 bg-sun-50 text-sun-700",
+  "M\u00c3\u2030DIA": "border border-sun-200 bg-sun-50 text-sun-700",
+  "M\u00c3\u0192\u00e2\u20ac\u00b0DIA": "border border-sun-200 bg-sun-50 text-sun-700",
+  BAIXA: "border border-sage-200 bg-sage-50 text-sage-700",
+  default: "border border-sand-200 bg-sand-50 text-graphite/80",
 } as const;
 
-type Prioridade = "ALTA" | "MÉDIA" | "BAIXA" | string | undefined | null;
+type Prioridade =
+  | "ALTA"
+  | "MEDIA"
+  | "M\u00c3\u2030DIA"
+  | "M\u00c3\u0192\u00e2\u20ac\u00b0DIA"
+  | "BAIXA"
+  | string
+  | undefined
+  | null;
 
 export function Badge({
   label,
@@ -17,17 +28,17 @@ export function Badge({
   label: Prioridade;
   className?: string;
 }) {
-  const base =
-    variants[(label as keyof typeof variants) || "default"] || variants.default;
+  const base = variants[(label as keyof typeof variants) || "default"] || variants.default;
+
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
+        "inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]",
         base,
         className
       )}
     >
-      {label || "—"}
+      {label || "--"}
     </span>
   );
 }

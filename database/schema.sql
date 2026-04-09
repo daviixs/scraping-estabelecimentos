@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS estabelecimentos (
     faixa_classificacao TEXT,
     prioridade_lead     TEXT,
     resumo_queixas      TEXT,
+    aprovado_disparo    INTEGER DEFAULT 0,
+    status_whatsapp     TEXT DEFAULT 'pendente',
     UNIQUE(nome, cidade)
 );
 
@@ -43,4 +45,24 @@ CREATE TABLE IF NOT EXISTS queixas_categorias (
     categoria           TEXT,
     contagem            INTEGER,
     data_coleta         TEXT
+);
+
+CREATE TABLE IF NOT EXISTS fila_disparos (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    estabelecimento_id  INTEGER REFERENCES estabelecimentos(id),
+    telefone            TEXT,
+    mensagem            TEXT,
+    origem_disparo      TEXT DEFAULT 'manual',
+    status              TEXT DEFAULT 'pendente',
+    tentativas          INTEGER DEFAULT 0,
+    data_agendamento    TEXT,
+    data_envio          TEXT,
+    erro_descricao      TEXT,
+    resposta_recebida   INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS configuracoes_operacionais (
+    id            INTEGER PRIMARY KEY CHECK (id = 1),
+    modo_envio    TEXT DEFAULT 'manual',
+    atualizado_em TEXT
 );

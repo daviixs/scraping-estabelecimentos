@@ -10,7 +10,6 @@ from typing import Any, Callable, Dict, Optional
 from config import settings
 from database import db_manager, history
 from processor import nlp_comments, normalizer, scorer
-from scraper import apontador, google_maps
 
 from .scan_parser import CommandParseError, ScanRequest, parse_dashboard_scan_command, parse_scan_command
 
@@ -111,6 +110,7 @@ def process_registros(
         "novos_encontrados": 0,
         "ignorados_existentes": 0,
         "registros_processados": 0,
+        "estabelecimentos_ids": [],
     }
 
     with db_manager.get_connection() as conn:
@@ -176,9 +176,27 @@ def process_registros(
             db_manager.add_comentarios(conn, estab_id, comentarios, reg["data_coleta"])
             db_manager.add_queixas(conn, estab_id, counts, reg["data_coleta"])
             stats["novos_encontrados"] += 1
+            stats["estabelecimentos_ids"].append(estab_id)
             _notify(progress_cb, novos_encontrados=stats["novos_encontrados"])
 
     return stats
+
+
+def _apply_automatic_dispatch(estabelecimentos_ids: list[int]) -> int:
+    clean_ids = [int(item) for item in estabelecimentos_ids if item is not None]
+    if not clean_ids:
+        return 0
+
+    with db_manager.get_connection() as conn:
+        config = db_manager.get_operational_config(conn)
+        if config.get("modo_envio") != db_manager.MESSAGE_MODE_AUTOMATICO:
+            return 0
+        db_manager.update_aprovacao_lote(conn, clean_ids, aprovado=True)
+
+    from whatsapp import get_dispatch_scheduler
+
+    scheduler = get_dispatch_scheduler()
+    return scheduler.enqueue_estabelecimentos(clean_ids, source="automatico", approve=False)
 
 
 def execute_scan_request(
@@ -223,6 +241,8 @@ def execute_scan_request(
             )
 
         if scan_request.fonte == "google_maps":
+            from scraper import google_maps
+
             registros = google_maps.scrape_google_maps(
                 scan_request.busca or "",
                 target_count=scan_request.meta_minima,
@@ -230,6 +250,8 @@ def execute_scan_request(
                 progress_cb=on_scrape_progress,
             )
         elif scan_request.fonte == "apontador":
+            from scraper import apontador
+
             registros = apontador.scrape_apontador(
                 scan_request.cidade or "",
                 scan_request.estado or "",
@@ -247,6 +269,7 @@ def execute_scan_request(
     )
     summary["novos_encontrados"] = persisted["novos_encontrados"]
     summary["ignorados_existentes"] += persisted["ignorados_existentes"]
+    auto_enqueued = _apply_automatic_dispatch(persisted.get("estabelecimentos_ids", []))
     if summary["novos_encontrados"] >= scan_request.meta_minima:
         summary["status"] = "completed"
         summary["mensagem"] = f"Meta atingida com {summary['novos_encontrados']} novos estabelecimentos."
@@ -256,6 +279,8 @@ def execute_scan_request(
             f"Busca encerrada com {summary['novos_encontrados']} novos estabelecimentos "
             f"de {scan_request.meta_minima} desejados."
         )
+    if auto_enqueued:
+        summary["mensagem"] += f" {auto_enqueued} lead(s) entraram automaticamente na fila."
     _notify(progress_cb, **summary)
     return summary
 

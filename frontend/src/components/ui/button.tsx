@@ -4,16 +4,16 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:translate-y-[1px]",
+  "inline-flex items-center justify-center gap-2 rounded-2xl text-sm font-semibold transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:translate-y-[1px]",
   {
     variants: {
       variant: {
         primary:
-          "bg-accent text-white shadow-md shadow-accent/25 hover:shadow-lg hover:shadow-accent/30 focus-visible:ring-accent/80 ring-offset-sand-100",
+          "bg-accent text-white hover:bg-accent/92 focus-visible:ring-accent/70 ring-offset-sand-100",
         ghost:
-          "bg-white/80 text-graphite border border-sand-200 hover:-translate-y-[1px] hover:shadow-sm ring-offset-sand-100",
+          "border border-sand-200/90 bg-shell/70 text-graphite hover:-translate-y-[1px] hover:border-sand-300 hover:bg-white ring-offset-sand-100",
         outline:
-          "border border-sand-200 bg-white text-graphite hover:bg-sand-50 ring-offset-sand-100",
+          "border border-sand-300 bg-white/70 text-graphite hover:bg-sand-50 ring-offset-sand-100",
         subtle:
           "bg-graphite text-sand-50 hover:bg-graphite/90 ring-offset-sand-100",
       },
