@@ -21,8 +21,9 @@ No backend, tambem foram adicionados:
 
 ### 2.1 Dependencias Python
 ```bash
-python -m pip install -r requirements.txt
-python -m playwright install chromium
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m playwright install chromium
 ```
 
 ### 2.2 Build do frontend principal
@@ -53,7 +54,7 @@ EVOLUTION_INSTANCE = "nome-da-instancia"
 
 ### Rodar a dashboard
 ```bash
-python main.py --dashboard
+.venv/bin/python main.py --dashboard
 ```
 
 Abra:
@@ -68,9 +69,9 @@ Use a dashboard ou a CLI para coletar leads.
 
 Exemplos:
 ```bash
-python main.py --fonte google_maps --busca "restaurantes Franca SP"
-python main.py --fonte apontador --cidade Franca --estado SP --categoria bares-e-restaurantes/restaurantes
-python main.py --fonte csv --arquivo lista.csv
+.venv/bin/python main.py --fonte google_maps --busca "restaurantes Franca SP"
+.venv/bin/python main.py --fonte apontador --cidade Franca --estado SP --categoria bares-e-restaurantes/restaurantes
+.venv/bin/python main.py --fonte csv --arquivo lista.csv
 ```
 
 ### Passo 2. Revisar na aba `Estabelecimentos`

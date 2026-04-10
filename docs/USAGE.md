@@ -9,7 +9,7 @@ Este arquivo virou um indice rapido.
 ## Fluxo resumido
 1. Instale dependencias Python e Playwright
 2. Rode o build do frontend em `frontend/`
-3. Suba a dashboard com `python main.py --dashboard`
+3. Suba a dashboard com `.venv/bin/python main.py --dashboard`
 4. Colete leads
 5. Aprove leads na aba `Estabelecimentos`
 6. Inicie e acompanhe o scheduler na aba `Mensagens`

@@ -13,20 +13,22 @@ Pipeline local para coletar, qualificar e operar leads de estabelecimentos com b
 - Opera envios via Evolution API respeitando janela util, limite diario e intervalo entre mensagens.
 
 ## Requisitos
-- Python 3.10 ou superior
+- Python 3.10 a 3.13 (`python3.12` recomendado)
 - `pip` funcionando
 - Chromium do Playwright instalado
 - Node.js 18 ou superior
 
 Observacoes:
+- `Python 3.14` nao e compativel com `playwright==1.44.0` e `greenlet` usados neste projeto.
 - O build do frontend principal e obrigatorio para a dashboard abrir.
 - Para scraping e envio WhatsApp, o computador precisa ter acesso a internet.
 
 ## 1. Instalar dependencias Python
 ```bash
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m playwright install chromium
+python3.12 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m playwright install chromium
 ```
 
 Dependencias principais:
@@ -51,7 +53,7 @@ Isso gera a aplicacao em `frontend/dist`, que passa a ser obrigatoria para o Fla
 
 ## 3. Rodar a dashboard
 ```bash
-python main.py --dashboard
+.venv/bin/python main.py --dashboard
 ```
 
 URL padrao:
@@ -61,17 +63,17 @@ URL padrao:
 
 ### Google Maps
 ```bash
-python main.py --fonte google_maps --busca "restaurantes Franca SP"
+.venv/bin/python main.py --fonte google_maps --busca "restaurantes Franca SP"
 ```
 
 ### Apontador
 ```bash
-python main.py --fonte apontador --cidade Franca --estado SP --categoria bares-e-restaurantes/restaurantes
+.venv/bin/python main.py --fonte apontador --cidade Franca --estado SP --categoria bares-e-restaurantes/restaurantes
 ```
 
 ### CSV manual
 ```bash
-python main.py --fonte csv --arquivo lista.csv
+.venv/bin/python main.py --fonte csv --arquivo lista.csv
 ```
 
 ## 5. Operacao da dashboard
@@ -121,7 +123,7 @@ pytest -q tests
 
 Se o `pytest` nao estiver disponivel:
 ```bash
-python -m pytest -q tests
+.venv/bin/python -m pytest -q tests
 ```
 
 ## 9. Guias de uso

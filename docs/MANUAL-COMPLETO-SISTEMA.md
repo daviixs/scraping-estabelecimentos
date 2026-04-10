@@ -83,7 +83,7 @@ Serve para:
 
 Voce precisa de:
 
-- Python 3.10 ou superior
+- Python 3.10 a 3.13 (`python3.12` recomendado)
 - `pip`
 - Node.js 18 ou superior
 - Playwright com Chromium
@@ -91,14 +91,18 @@ Voce precisa de:
 - Evolution API rodando
 - um numero de WhatsApp que sera conectado na Evolution
 
+Observacao:
+- `Python 3.14` nao e compativel com `playwright==1.44.0` e `greenlet` usados neste projeto.
+
 ## 4. Como instalar e subir o seu sistema
 
 ### 4.1 Instalar dependencias Python
 
 ```bash
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m playwright install chromium
+python3.12 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m playwright install chromium
 ```
 
 ### 4.2 Instalar e buildar o frontend principal
@@ -115,7 +119,7 @@ Sem esse build, a dashboard nao abre.
 ### 4.3 Rodar a dashboard
 
 ```bash
-python main.py --dashboard
+.venv/bin/python main.py --dashboard
 ```
 
 Abra no navegador:
@@ -391,19 +395,19 @@ A ordem correta e:
 ### Google Maps
 
 ```bash
-python main.py --fonte google_maps --busca "restaurantes Franca SP"
+.venv/bin/python main.py --fonte google_maps --busca "restaurantes Franca SP"
 ```
 
 ### Apontador
 
 ```bash
-python main.py --fonte apontador --cidade Franca --estado SP --categoria bares-e-restaurantes/restaurantes
+.venv/bin/python main.py --fonte apontador --cidade Franca --estado SP --categoria bares-e-restaurantes/restaurantes
 ```
 
 ### CSV
 
 ```bash
-python main.py --fonte csv --arquivo lista.csv
+.venv/bin/python main.py --fonte csv --arquivo lista.csv
 ```
 
 ## 12.3 Como usar a aba `Estabelecimentos`
@@ -750,7 +754,7 @@ cd frontend
 npm install
 npm run build
 cd ..
-python main.py --dashboard
+.venv/bin/python main.py --dashboard
 ```
 
 ## 16.2 A Evolution nao responde

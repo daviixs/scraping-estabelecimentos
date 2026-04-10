@@ -1,4 +1,18 @@
 import argparse
+import sys
+
+
+def ensure_supported_python():
+    if sys.version_info < (3, 10):
+        raise SystemExit("Este projeto requer Python 3.10 ou superior.")
+    if sys.version_info >= (3, 14):
+        raise SystemExit(
+            "Python 3.14 nao e compativel com as dependencias atuais do projeto. "
+            "Crie uma .venv com Python 3.12 e rode `.venv/bin/python main.py --dashboard`."
+        )
+
+
+ensure_supported_python()
 
 from scraper import csv_importer
 from services import build_scan_request_from_args, execute_scan_request, process_registros
