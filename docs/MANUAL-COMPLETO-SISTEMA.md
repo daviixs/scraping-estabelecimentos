@@ -168,17 +168,61 @@ Nesse caso, a sua credencial principal nasce quando voce sobe a Evolution.
 
 Segundo a documentacao oficial, em instalacao Docker simples a Evolution usa a variavel `AUTHENTICATION_API_KEY`. Essa e a chave que a API espera no header `apikey`.
 
-Exemplo de subida local:
+Observacao:
 
-```bash
-docker run -d ^
-  --name evolution_api ^
-  -p 8080:8080 ^
-  -e AUTHENTICATION_API_KEY=troque-por-uma-chave-forte ^
-  atendai/evolution-api
+- em imagens mais novas da Evolution, subir apenas `atendai/evolution-api` com `AUTHENTICATION_API_KEY` pode falhar com `Database provider invalid`
+- quando isso acontecer, use uma stack com Postgres e Redis e configure `DATABASE_PROVIDER` e `DATABASE_CONNECTION_URI`
+
+Exemplo de subida local simples com Docker Compose:
+
+```yaml
+services:
+  evolution_api:
+    image: atendai/evolution-api:v2.1.1
+    container_name: evolution_api
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - evolution_postgres
+      - evolution_redis
+    environment:
+      - AUTHENTICATION_API_KEY=troque-por-uma-chave-forte
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://postgres:postgres@evolution_postgres:5432/evolution?schema=public
+      - DATABASE_CONNECTION_CLIENT_NAME=evolution_local
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://evolution_redis:6379/6
+
+  evolution_postgres:
+    image: postgres:15
+    container_name: evolution_postgres
+    restart: always
+    environment:
+      - POSTGRES_DB=evolution
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - evolution_postgres_data:/var/lib/postgresql/data
+
+  evolution_redis:
+    image: redis:7-alpine
+    container_name: evolution_redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - evolution_redis_data:/data
+
+volumes:
+  evolution_postgres_data:
+  evolution_redis_data:
 ```
 
-Se voce usar `docker compose`, a ideia e a mesma: definir `AUTHENTICATION_API_KEY` no `.env` da Evolution.
+Depois suba com:
+
+```bash
+docker compose up -d
+```
 
 Entao, neste cenario:
 
@@ -228,8 +272,8 @@ Em instalacoes padrao, a Evolution costuma responder com uma pagina ou JSON de b
 Use:
 
 ```bash
-curl --request GET ^
-  --url "http://localhost:8080/instance/fetchInstances" ^
+curl --request GET \
+  --url "http://localhost:8080/instance/fetchInstances" \
   --header "apikey: SUA_CHAVE"
 ```
 
@@ -251,10 +295,10 @@ POST /instance/create
 Exemplo pratico:
 
 ```bash
-curl --request POST ^
-  --url "http://localhost:8080/instance/create" ^
-  --header "Content-Type: application/json" ^
-  --header "apikey: SUA_CHAVE" ^
+curl --request POST \
+  --url "http://localhost:8080/instance/create" \
+  --header "Content-Type: application/json" \
+  --header "apikey: SUA_CHAVE" \
   --data "{\"instanceName\":\"bot-comercial\",\"token\":\"\",\"qrcode\":true,\"integration\":\"WHATSAPP-BAILEYS\"}"
 ```
 
@@ -306,8 +350,8 @@ GET /instance/connect/{instance}
 Exemplo:
 
 ```bash
-curl --request GET ^
-  --url "http://localhost:8080/instance/connect/bot-comercial" ^
+curl --request GET \
+  --url "http://localhost:8080/instance/connect/bot-comercial" \
   --header "apikey: SUA_CHAVE"
 ```
 
@@ -320,8 +364,8 @@ Em alguns casos a resposta inclui:
 Se quiser tentar pairing code com numero:
 
 ```bash
-curl --request GET ^
-  --url "http://localhost:8080/instance/connect/bot-comercial?number=5516999999999" ^
+curl --request GET \
+  --url "http://localhost:8080/instance/connect/bot-comercial?number=5516999999999" \
   --header "apikey: SUA_CHAVE"
 ```
 
@@ -330,8 +374,8 @@ curl --request GET ^
 Use novamente:
 
 ```bash
-curl --request GET ^
-  --url "http://localhost:8080/instance/fetchInstances?instanceName=bot-comercial" ^
+curl --request GET \
+  --url "http://localhost:8080/instance/fetchInstances?instanceName=bot-comercial" \
   --header "apikey: SUA_CHAVE"
 ```
 
@@ -537,10 +581,10 @@ POST /chat/whatsappNumbers/{instance}
 Exemplo:
 
 ```bash
-curl --request POST ^
-  --url "http://localhost:8080/chat/whatsappNumbers/bot-comercial" ^
-  --header "Content-Type: application/json" ^
-  --header "apikey: SUA_CHAVE" ^
+curl --request POST \
+  --url "http://localhost:8080/chat/whatsappNumbers/bot-comercial" \
+  --header "Content-Type: application/json" \
+  --header "apikey: SUA_CHAVE" \
   --data "{\"numbers\":[\"5516999990000\"]}"
 ```
 
@@ -562,10 +606,10 @@ POST /message/sendText/{instance}
 Exemplo:
 
 ```bash
-curl --request POST ^
-  --url "http://localhost:8080/message/sendText/bot-comercial" ^
-  --header "Content-Type: application/json" ^
-  --header "apikey: SUA_CHAVE" ^
+curl --request POST \
+  --url "http://localhost:8080/message/sendText/bot-comercial" \
+  --header "Content-Type: application/json" \
+  --header "apikey: SUA_CHAVE" \
   --data "{\"number\":\"5516999990000\",\"text\":\"Ola! Esta e uma mensagem de teste.\"}"
 ```
 
@@ -607,18 +651,18 @@ Retorna KPIs como:
 ## 14.3 Aprovar leads
 
 ```bash
-curl --request POST ^
-  --url "http://127.0.0.1:5000/api/aprovar" ^
-  --header "Content-Type: application/json" ^
+curl --request POST \
+  --url "http://127.0.0.1:5000/api/aprovar" \
+  --header "Content-Type: application/json" \
   --data "{\"ids\":[1,2,3]}"
 ```
 
 ## 14.4 Remover aprovacao
 
 ```bash
-curl --request POST ^
-  --url "http://127.0.0.1:5000/api/remover-aprovacao" ^
-  --header "Content-Type: application/json" ^
+curl --request POST \
+  --url "http://127.0.0.1:5000/api/remover-aprovacao" \
+  --header "Content-Type: application/json" \
   --data "{\"ids\":[1,2,3]}"
 ```
 
@@ -637,27 +681,27 @@ curl "http://127.0.0.1:5000/api/mensagens/config"
 ## 14.7 Trocar o modo entre manual e automatico
 
 ```bash
-curl --request POST ^
-  --url "http://127.0.0.1:5000/api/mensagens/config" ^
-  --header "Content-Type: application/json" ^
+curl --request POST \
+  --url "http://127.0.0.1:5000/api/mensagens/config" \
+  --header "Content-Type: application/json" \
   --data "{\"modo_envio\":\"automatico\"}"
 ```
 
 Para voltar:
 
 ```bash
-curl --request POST ^
-  --url "http://127.0.0.1:5000/api/mensagens/config" ^
-  --header "Content-Type: application/json" ^
+curl --request POST \
+  --url "http://127.0.0.1:5000/api/mensagens/config" \
+  --header "Content-Type: application/json" \
   --data "{\"modo_envio\":\"manual\"}"
 ```
 
 ## 14.8 Adicionar selecionados a fila
 
 ```bash
-curl --request POST ^
-  --url "http://127.0.0.1:5000/api/disparo/enfileirar" ^
-  --header "Content-Type: application/json" ^
+curl --request POST \
+  --url "http://127.0.0.1:5000/api/disparo/enfileirar" \
+  --header "Content-Type: application/json" \
   --data "{\"ids\":[5,6,7]}"
 ```
 
@@ -676,14 +720,14 @@ curl "http://127.0.0.1:5000/api/disparo/status"
 ## 14.11 Iniciar o scheduler
 
 ```bash
-curl --request POST ^
+curl --request POST \
   --url "http://127.0.0.1:5000/api/disparo/iniciar"
 ```
 
 ## 14.12 Pausar o scheduler
 
 ```bash
-curl --request POST ^
+curl --request POST \
   --url "http://127.0.0.1:5000/api/disparo/pausar"
 ```
 
@@ -692,9 +736,9 @@ curl --request POST ^
 Google Maps:
 
 ```bash
-curl --request POST ^
-  --url "http://127.0.0.1:5000/api/varreduras" ^
-  --header "Content-Type: application/json" ^
+curl --request POST \
+  --url "http://127.0.0.1:5000/api/varreduras" \
+  --header "Content-Type: application/json" \
   --data "{\"source\":\"google_maps\",\"command\":\"restaurantes Franca SP\"}"
 ```
 
@@ -776,8 +820,8 @@ Se nao responder:
 Teste:
 
 ```bash
-curl --request GET ^
-  --url "http://localhost:8080/instance/fetchInstances" ^
+curl --request GET \
+  --url "http://localhost:8080/instance/fetchInstances" \
   --header "apikey: SUA_CHAVE"
 ```
 

@@ -1,0 +1,40 @@
+services:
+    evolution_api:
+      image: atendai/evolution-api:v2.1.1
+      container_name: evolution_api
+      restart: always
+      ports:
+        - "8080:8080"
+      depends_on:
+        - evolution_postgres
+        - evolution_redis
+      environment:
+        - AUTHENTICATION_API_KEY=evo_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDjdnsfjhndsbfsTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30
+        - DATABASE_PROVIDER=postgresql
+        - DATABASE_CONNECTION_URI=postgresql://postgres:postgres@evolution_postgres:5432/evolution?schema=public
+        - DATABASE_CONNECTION_CLIENT_NAME=evolution_local
+        - CACHE_REDIS_ENABLED=true
+        - CACHE_REDIS_URI=redis://evolution_redis:6379/6
+
+    evolution_postgres:
+      image: postgres:15
+      container_name: evolution_postgres
+      restart: always
+      environment:
+        - POSTGRES_DB=evolution
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=postgres
+      volumes:
+        - evolution_postgres_data:/var/lib/postgresql/data
+
+    evolution_redis:
+      image: redis:7-alpine
+      container_name: evolution_redis
+      restart: always
+      command: redis-server --appendonly yes
+      volumes:
+        - evolution_redis_data:/data
+
+volumes:
+  evolution_postgres_data:
+  evolution_redis_data:
